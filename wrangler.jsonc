@@ -1,0 +1,43 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "project-think-agent",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-04-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": { "binding": "AI", "remote": true },
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/agents/*", "/oauth/*", "/telegram/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "ChatAgent",
+        "name": "ChatAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": ["ChatAgent"],
+      "tag": "v1"
+    }
+  ],
+  "env": {
+    "full": {
+      "name": "project-think-agent-full",
+      "ai": { "binding": "AI", "remote": true },
+      "browser": { "binding": "BROWSER" },
+      "worker_loaders": [{ "binding": "LOADER" }],
+      "durable_objects": {
+        "bindings": [
+          {
+            "class_name": "ChatAgent",
+            "name": "ChatAgent"
+          }
+        ]
+      }
+    }
+  }
+}

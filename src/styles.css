@@ -1,0 +1,730 @@
+@import "tailwindcss";
+@import "@cloudflare/kumo/styles/tailwind";
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+:root {
+  --app-scrollbar-size: 8px;
+  --app-scrollbar-track: color-mix(
+    in srgb,
+    var(--color-kumo-control) 82%,
+    var(--color-kumo-base)
+  );
+  --app-scrollbar-thumb: color-mix(
+    in srgb,
+    var(--color-kumo-subtle) 62%,
+    var(--color-kumo-control)
+  );
+  --app-scrollbar-thumb-hover: color-mix(
+    in srgb,
+    var(--color-kumo-default) 45%,
+    var(--color-kumo-subtle)
+  );
+}
+
+.chat-inner,
+.settings-body,
+.server-list,
+.tool-json,
+.debug-json,
+.reasoning-body,
+.chat-input-area,
+.message-markdown pre,
+.message-markdown table {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+}
+
+.chat-inner::-webkit-scrollbar,
+.settings-body::-webkit-scrollbar,
+.server-list::-webkit-scrollbar,
+.tool-json::-webkit-scrollbar,
+.debug-json::-webkit-scrollbar,
+.reasoning-body::-webkit-scrollbar,
+.chat-input-area::-webkit-scrollbar,
+.message-markdown pre::-webkit-scrollbar,
+.message-markdown table::-webkit-scrollbar {
+  width: var(--app-scrollbar-size);
+  height: var(--app-scrollbar-size);
+}
+
+.chat-inner::-webkit-scrollbar-track,
+.settings-body::-webkit-scrollbar-track,
+.server-list::-webkit-scrollbar-track,
+.tool-json::-webkit-scrollbar-track,
+.debug-json::-webkit-scrollbar-track,
+.reasoning-body::-webkit-scrollbar-track,
+.chat-input-area::-webkit-scrollbar-track,
+.message-markdown pre::-webkit-scrollbar-track,
+.message-markdown table::-webkit-scrollbar-track {
+  background: var(--app-scrollbar-track);
+  border-radius: 999px;
+}
+
+.chat-inner::-webkit-scrollbar-thumb,
+.settings-body::-webkit-scrollbar-thumb,
+.server-list::-webkit-scrollbar-thumb,
+.tool-json::-webkit-scrollbar-thumb,
+.debug-json::-webkit-scrollbar-thumb,
+.reasoning-body::-webkit-scrollbar-thumb,
+.chat-input-area::-webkit-scrollbar-thumb,
+.message-markdown pre::-webkit-scrollbar-thumb,
+.message-markdown table::-webkit-scrollbar-thumb {
+  background: var(--app-scrollbar-thumb);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.chat-inner::-webkit-scrollbar-thumb:hover,
+.settings-body::-webkit-scrollbar-thumb:hover,
+.server-list::-webkit-scrollbar-thumb:hover,
+.tool-json::-webkit-scrollbar-thumb:hover,
+.debug-json::-webkit-scrollbar-thumb:hover,
+.reasoning-body::-webkit-scrollbar-thumb:hover,
+.chat-input-area::-webkit-scrollbar-thumb:hover,
+.message-markdown pre::-webkit-scrollbar-thumb:hover,
+.message-markdown table::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+.loading-shell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100dvh;
+}
+
+.app-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      1200px 500px at 50% -200px,
+      rgba(22, 132, 252, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--color-kumo-elevated), var(--color-kumo-base));
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  margin: 0.5rem;
+  border: 2px dashed var(--color-kumo-brand);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-kumo-elevated) 85%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.drop-overlay-content {
+  display: grid;
+  gap: 0.5rem;
+  place-items: center;
+  color: var(--color-kumo-brand);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--color-kumo-line);
+  background: color-mix(in srgb, var(--color-kumo-base) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.app-header-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0.9rem 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.app-title-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.app-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-kumo-default);
+  min-width: 0;
+}
+
+.app-title-icon {
+  line-height: 1;
+}
+
+.app-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.chat-main {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.status-banner {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-kumo-line);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.status-banner-ok {
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-success) 10%,
+    var(--color-kumo-base)
+  );
+}
+
+.status-banner-error {
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-danger) 10%,
+    var(--color-kumo-base)
+  );
+}
+
+.status-banner-unknown {
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-warning) 12%,
+    var(--color-kumo-base)
+  );
+}
+
+.status-banner-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.starter-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.message-block {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.message-row {
+  display: flex;
+  width: 100%;
+}
+
+.message-row.user {
+  justify-content: flex-end;
+}
+
+.message-row.assistant {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  min-width: 0;
+  max-width: min(100%, 820px);
+  border-radius: 1rem;
+  border: 1px solid var(--color-kumo-line);
+  overflow: hidden;
+}
+
+.user-bubble {
+  padding: 0.7rem 0.85rem;
+  border-bottom-right-radius: 0.3rem;
+  border-color: color-mix(in srgb, var(--color-kumo-brand) 36%, transparent);
+  color: var(--color-kumo-default);
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-brand) 16%,
+    var(--color-kumo-elevated)
+  );
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+:root[data-mode="dark"] .user-bubble {
+  color: var(--color-kumo-default);
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-brand) 22%,
+    var(--color-kumo-elevated)
+  );
+  border-color: color-mix(in srgb, var(--color-kumo-brand) 42%, transparent);
+}
+
+.assistant-bubble {
+  border-bottom-left-radius: 0.3rem;
+  background: var(--color-kumo-base);
+}
+
+.message-markdown {
+  padding: 0.65rem 0.8rem;
+  line-height: 1.55;
+  color: var(--color-kumo-default);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.message-markdown pre,
+.message-markdown code,
+.message-markdown table {
+  max-width: 100%;
+}
+
+.message-markdown pre {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 0.65rem;
+}
+
+.message-markdown table {
+  display: block;
+  overflow-x: auto;
+}
+
+.message-markdown img,
+.message-markdown video {
+  max-width: 100%;
+  height: auto;
+}
+
+.message-image {
+  max-width: min(100%, 460px);
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 0.8rem;
+  border: 1px solid var(--color-kumo-line);
+}
+
+.reasoning-panel {
+  width: min(100%, 820px);
+}
+
+.reasoning-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  border: 1px solid
+    color-mix(in srgb, var(--color-kumo-brand) 35%, var(--color-kumo-line));
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-brand) 8%,
+    var(--color-kumo-base)
+  );
+}
+
+.reasoning-status {
+  font-size: 0.75rem;
+  color: var(--color-kumo-subtle);
+}
+
+.reasoning-body {
+  margin: 0.35rem 0 0;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-control);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.tool-card {
+  width: min(100%, 820px);
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-kumo-line);
+}
+
+.tool-card-warning {
+  border-color: color-mix(
+    in srgb,
+    var(--color-kumo-warning) 55%,
+    var(--color-kumo-line)
+  );
+}
+
+.tool-card-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tool-json {
+  margin: 0.45rem 0 0;
+  max-height: 280px;
+  overflow: auto;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-control);
+  padding: 0.5rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tool-actions {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.debug-json {
+  margin: 0;
+  border-radius: 0.65rem;
+  border: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-control);
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.5rem;
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.chat-input-shell {
+  border-top: 1px solid var(--color-kumo-line);
+  background: color-mix(in srgb, var(--color-kumo-base) 94%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.chat-input-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 0.95rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.attachment-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.attachment-item {
+  position: relative;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  border: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-control);
+}
+
+.attachment-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  display: block;
+}
+
+.attachment-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-kumo-contrast) 85%, transparent);
+  color: var(--color-kumo-inverse);
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.chat-input-box {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: end;
+  border: 1px solid var(--color-kumo-line);
+  border-radius: 0.85rem;
+  padding: 0.55rem;
+  background: var(--color-kumo-base);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+}
+
+.chat-input-area {
+  width: 100%;
+  min-width: 0;
+  resize: none;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.settings-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(2, 6, 23, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+.settings-panel {
+  width: min(96vw, 540px);
+  height: 100%;
+  border-left: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-elevated);
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--color-kumo-line);
+  padding: 0.75rem 0.85rem;
+}
+
+.settings-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.settings-body {
+  overflow: auto;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.settings-section {
+  border-radius: 0.8rem;
+  border: 1px solid var(--color-kumo-line);
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.section-head-actions {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.section-head-title {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.section-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.provider-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.provider-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.settings-label {
+  font-size: 0.78rem;
+  color: var(--color-kumo-subtle);
+}
+
+.settings-input {
+  width: 100%;
+  min-width: 0;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-base);
+  color: var(--color-kumo-default);
+  font-size: 0.83rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.settings-input:focus {
+  outline: 1px solid var(--color-kumo-accent);
+  outline-offset: 1px;
+}
+
+.inline-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inline-row .settings-input {
+  flex: 1;
+}
+
+.server-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 270px;
+  overflow: auto;
+}
+
+.server-item {
+  border-radius: 0.65rem;
+  border: 1px solid var(--color-kumo-line);
+  background: var(--color-kumo-base);
+  padding: 0.55rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.server-item-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.server-item-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.server-name {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.server-url {
+  font-size: 0.72rem;
+  color: var(--color-kumo-subtle);
+  overflow-wrap: anywhere;
+}
+
+.server-error {
+  font-size: 0.72rem;
+  color: var(--color-kumo-danger);
+  overflow-wrap: anywhere;
+}
+
+.server-actions {
+  display: inline-flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.monospace {
+  font-family:
+    ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono",
+    monospace;
+}
+
+@media (max-width: 900px) {
+  .app-header-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-controls {
+    justify-content: flex-start;
+  }
+
+  .message-bubble,
+  .tool-card,
+  .reasoning-panel {
+    max-width: 100%;
+  }
+}
