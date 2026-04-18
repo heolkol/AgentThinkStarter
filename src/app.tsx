@@ -65,13 +65,6 @@ type ProviderSettings = {
   };
 };
 
-type AccessSecuritySettings = {
-  accessEmailEnforce: boolean;
-  source: "stored" | "env" | "implicit-default";
-  storedValue: boolean | null;
-  configuredEnvValue: string | null;
-};
-
 type RuntimeStatus = {
   provider: {
     active: ProviderKind;
@@ -101,7 +94,6 @@ type RuntimeStatus = {
     botTokenSource: "env" | "stored" | "none";
     webhookSecretSource: "env" | "stored" | "none";
   };
-  security: AccessSecuritySettings;
 };
 
 type DiagnosticsSnapshot = {
@@ -466,7 +458,6 @@ function Chat() {
   );
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [isSavingProvider, setIsSavingProvider] = useState(false);
-  const [isSavingAccessSecurity, setIsSavingAccessSecurity] = useState(false);
   const [isSendingDiagnostics, setIsSendingDiagnostics] = useState(false);
   const [diagnosticsJson, setDiagnosticsJson] = useState<string | null>(null);
 
@@ -914,34 +905,6 @@ function Chat() {
     }
   };
 
-  const saveAccessSecuritySettings = async (accessEmailEnforce: boolean) => {
-    setIsSavingAccessSecurity(true);
-    try {
-      const result = (await agent.stub.updateAccessSecuritySettings(
-        accessEmailEnforce
-      )) as RuntimeStatus;
-      setRuntimeStatus(result);
-      toasts.add({
-        title: accessEmailEnforce
-          ? "Access enforcement enabled"
-          : "Access enforcement disabled",
-        description: accessEmailEnforce
-          ? "Future requests will require Cloudflare Access identity if your Access app is configured."
-          : "The app is now open until you enable Access enforcement again.",
-        timeout: 7000
-      });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      toasts.add({
-        title: "Failed to update Access enforcement",
-        description: message,
-        timeout: 8000
-      });
-    } finally {
-      setIsSavingAccessSecurity(false);
-    }
-  };
-
   const handleSendDiagnostics = async () => {
     setIsSendingDiagnostics(true);
     try {
@@ -1018,18 +981,6 @@ function Chat() {
     return null;
   }, [openAIBrowserKey, providerSettings, runtimeStatus]);
 
-  const securityBadge = useMemo(() => {
-    if (!runtimeStatus) {
-      return { label: "Security: loading", variant: "secondary" as const };
-    }
-
-    if (runtimeStatus.security.accessEmailEnforce) {
-      return { label: "Security: protected", variant: "primary" as const };
-    }
-
-    return { label: "Security: open", variant: "secondary" as const };
-  }, [runtimeStatus]);
-
   return (
     <section
       className="app-shell"
@@ -1076,7 +1027,6 @@ function Chat() {
                 Provider: {runtimeStatus.provider.active}
               </Badge>
             )}
-            <Badge variant={securityBadge.variant}>{securityBadge.label}</Badge>
           </div>
 
           <div className="app-controls">
@@ -1491,12 +1441,6 @@ function Chat() {
                         ? `configured (${runtimeStatus.telegram.webhookSecretSource})`
                         : "not configured"}
                     </Text>
-                    <Text size="xs" variant="secondary">
-                      Access enforcement:{" "}
-                      {runtimeStatus.security.accessEmailEnforce
-                        ? `enabled (${runtimeStatus.security.source})`
-                        : `disabled (${runtimeStatus.security.source})`}
-                    </Text>
                   </div>
                 ) : (
                   <Text size="xs" variant="secondary">
@@ -1507,55 +1451,6 @@ function Chat() {
                 {diagnosticsJson && (
                   <pre className="debug-json">{diagnosticsJson}</pre>
                 )}
-              </Surface>
-
-              <Surface className="settings-section">
-                <div className="section-head">
-                  <Text size="sm" bold>
-                    Security
-                  </Text>
-                </div>
-
-                <div className="section-stack">
-                  <Text size="xs" variant="secondary">
-                    Cloudflare Access email/OTP enforcement can stay off for
-                    first-time setup and be enabled later from here.
-                  </Text>
-
-                  <div className="toggle-row">
-                    <div className="toggle-row-copy">
-                      <Text size="sm" bold>
-                        Require Cloudflare Access identity
-                      </Text>
-                      <Text size="xs" variant="secondary">
-                        Current state:{" "}
-                        {runtimeStatus?.security.accessEmailEnforce
-                          ? `enabled (${runtimeStatus.security.source})`
-                          : runtimeStatus
-                            ? `disabled (${runtimeStatus.security.source})`
-                            : "loading"}
-                      </Text>
-                    </div>
-
-                    <Switch
-                      checked={Boolean(
-                        runtimeStatus?.security.accessEmailEnforce
-                      )}
-                      onCheckedChange={(checked) => {
-                        void saveAccessSecuritySettings(checked);
-                      }}
-                      disabled={!runtimeStatus || isSavingAccessSecurity}
-                      size="sm"
-                      aria-label="Toggle Cloudflare Access enforcement"
-                    />
-                  </div>
-
-                  <Text size="xs" variant="secondary">
-                    If you enable this before configuring a Cloudflare Access
-                    app for your hostname, future page loads may be blocked
-                    until Access is set up.
-                  </Text>
-                </div>
               </Surface>
 
               <Surface className="settings-section">
