@@ -1,0 +1,43 @@
+{
+  "_chunk-CULJAie3.js": {
+    "file": "assets/chunk-CULJAie3.js",
+    "name": "chunk"
+  },
+  "_manager-BTBhPS6g-Cm__v_0W.js": {
+    "file": "assets/manager-BTBhPS6g-Cm__v_0W.js",
+    "name": "manager-BTBhPS6g",
+    "imports": [
+      "_chunk-CULJAie3.js"
+    ]
+  },
+  "node_modules/@cloudflare/think/dist/hook-proxy-f_DqtJ9u.js": {
+    "file": "assets/hook-proxy-f_DqtJ9u-DuJFCXdf.js",
+    "name": "hook-proxy-f_DqtJ9u",
+    "src": "node_modules/@cloudflare/think/dist/hook-proxy-f_DqtJ9u.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/mimetext/dist/mimetext.node.es.js": {
+    "file": "assets/mimetext.node.es-BmZk2F1D.js",
+    "name": "mimetext.node.es",
+    "src": "node_modules/mimetext/dist/mimetext.node.es.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_chunk-CULJAie3.js"
+    ]
+  },
+  "virtual:cloudflare/worker-entry": {
+    "file": "index.js",
+    "name": "index",
+    "src": "virtual:cloudflare/worker-entry",
+    "isEntry": true,
+    "imports": [
+      "_chunk-CULJAie3.js",
+      "_manager-BTBhPS6g-Cm__v_0W.js"
+    ],
+    "dynamicImports": [
+      "node_modules/mimetext/dist/mimetext.node.es.js",
+      "_manager-BTBhPS6g-Cm__v_0W.js",
+      "node_modules/@cloudflare/think/dist/hook-proxy-f_DqtJ9u.js"
+    ]
+  }
+}
