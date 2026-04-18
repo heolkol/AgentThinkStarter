@@ -412,14 +412,31 @@ npx wrangler secret put TELEGRAM_BOT_TOKEN
 
 ### Access protection (important)
 
-This app now enforces Cloudflare Access identity email checks by default for all non-Telegram routes.
+This app ships with Cloudflare Access identity email checks disabled for first-time deploys so users can get in and decide later whether to enable OTP/email protection.
+
+In the shipped UI, users can do that from:
+
+- **Settings → Security**
+- toggle **Require Cloudflare Access identity**
+- check the header badge for `Security: open` vs `Security: protected`
+
+Recovery behavior:
+
+- If someone enables Access enforcement from the UI and gets locked out later, setting `ACCESS_EMAIL_ENFORCE=false` acts as a hard unlock override.
+- In this starter, env `false` wins over a previously stored UI toggle.
+
+To enable it explicitly, set:
+
+```text
+ACCESS_EMAIL_ENFORCE=true
+```
 
 - Required request header: `CF-Access-Authenticated-User-Email`
 - Telegram webhook route remains public: `/telegram/webhook` (Telegram cannot do Access login)
 
 Optional env controls:
 
-- `ACCESS_EMAIL_ENFORCE` (default: `true`)
+- `ACCESS_EMAIL_ENFORCE` (starter default: `false`; set to `true` to enable)
 - `ACCESS_ALLOWED_EMAILS` (comma-separated exact allowlist)
 - `ACCESS_ALLOWED_EMAIL_DOMAINS` (comma-separated domain allowlist)
 
@@ -431,6 +448,15 @@ ACCESS_ALLOWED_EMAIL_DOMAINS=example.com
 ```
 
 If both email and domain allowlists are set, both checks are enforced.
+
+Migration note:
+
+- Existing deployments should set `ACCESS_EMAIL_ENFORCE=true` explicitly if they want to preserve mandatory Access auth behavior after adopting this starter configuration.
+
+Worker naming note:
+
+- This repo now aligns `package.json` name with `wrangler.jsonc` Worker name (`project-think-agent`) to reduce one common source of Cloudflare Builds mismatch.
+- Cloudflare still expects the deployed dashboard Worker name to match the Wrangler config, so if Builds opens a PR about name mismatch, check the dashboard Worker name instead of assuming the code is wrong.
 
 ---
 

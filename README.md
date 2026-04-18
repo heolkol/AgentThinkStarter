@@ -107,7 +107,7 @@ Notes:
 
 Optional plain env values for access control:
 
-- `ACCESS_EMAIL_ENFORCE=true` (default behavior)
+- `ACCESS_EMAIL_ENFORCE=false` (starter default for first deploys)
 - `ACCESS_ALLOWED_EMAILS=you@example.com,other@example.com`
 - `ACCESS_ALLOWED_EMAIL_DOMAINS=example.com`
 - `TELEGRAM_AGENT_ROOM=default` (or custom room if you want Telegram isolated from web chat)
@@ -116,7 +116,20 @@ Optional plain env values for access control:
 
 ### 1. Cloudflare Access for the app
 
-This repo now enforces Cloudflare Access email identity checks by default for non-Telegram routes.
+This repo ships with Cloudflare Access email identity checks **disabled by default for first-time deploys**.
+
+Enable it later by setting:
+
+```text
+ACCESS_EMAIL_ENFORCE=true
+```
+
+You can also enable or disable it from the app UI:
+
+- open **Settings → Security**
+- use **Require Cloudflare Access identity** toggle
+- the header badge will show `Security: open` or `Security: protected`
+- if you ever lock yourself out, setting `ACCESS_EMAIL_ENFORCE=false` in Wrangler/env overrides any previously stored UI toggle and re-opens the app
 
 - Protected: web app / agent UI routes
 - Public: `/telegram/webhook` (Telegram cannot log in through Access)
@@ -258,6 +271,28 @@ To secure the app:
 3. Create **Allow** policy for your email/domain
 4. Create separate **Bypass** app/rule for `/telegram/*`
 
+Then explicitly enable app-side enforcement with:
+
+```text
+ACCESS_EMAIL_ENFORCE=true
+```
+
+Recovery note:
+
+- `ACCESS_EMAIL_ENFORCE=false` is a hard unlock override for this starter.
+- Even if someone previously turned Access enforcement on from the UI, env `false` will win and reopen the app.
+
+## Worker naming note
+
+Cloudflare Workers deployments are happiest when one canonical Worker name is used everywhere.
+
+For this starter:
+
+- `wrangler.jsonc` uses `project-think-agent`
+- `package.json` now matches that same name
+
+This does **not** fully eliminate Cloudflare Builds naming rules, but it removes one obvious source of mismatch inside the repo. If Cloudflare Dashboard/Builds creates a PR about Worker name mismatch, verify the dashboard Worker name and keep it aligned with `wrangler.jsonc`.
+
 Without the Telegram bypass, the bot webhook will redirect to Access login and fail.
 
 ## Public release checklist
@@ -265,7 +300,7 @@ Without the Telegram bypass, the bot webhook will redirect to Access login and f
 Before publishing this repo:
 
 - [ ] Replace deploy-button placeholder URL in README
-- [ ] Update repo/package identity if you do not want `agent-starter` naming in `package.json`
+- [ ] Verify dashboard Worker name matches `wrangler.jsonc` before enabling Cloudflare Builds auto-deploy
 - [ ] Verify Telegram bypass path in Cloudflare Access
 - [ ] Confirm Worker secrets are not committed
 - [ ] Run `npm run check`

@@ -605,6 +605,19 @@ body {
   gap: 0.55rem;
 }
 
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.toggle-row-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
 .provider-choices {
   display: flex;
   flex-wrap: wrap;

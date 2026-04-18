@@ -4,6 +4,9 @@
   "main": "src/server.ts",
   "compatibility_date": "2026-04-15",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ACCESS_EMAIL_ENFORCE": "false"
+  },
   "ai": { "binding": "AI", "remote": true },
   "assets": {
     "directory": "./public",
@@ -27,6 +30,9 @@
   "env": {
     "full": {
       "name": "project-think-agent-full",
+      "vars": {
+        "ACCESS_EMAIL_ENFORCE": "false"
+      },
       "ai": { "binding": "AI", "remote": true },
       "browser": { "binding": "BROWSER" },
       "worker_loaders": [{ "binding": "LOADER" }],

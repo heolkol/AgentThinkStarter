@@ -55,6 +55,13 @@ type ChatHealthState = {
   lastSuccessAtUtc: string | null;
 };
 
+type AccessSecuritySettings = {
+  accessEmailEnforce: boolean;
+  source: "stored" | "env" | "implicit-default";
+  storedValue: boolean | null;
+  configuredEnvValue: string | null;
+};
+
 type RuntimeStatusPayload = {
   provider: {
     active: ProviderKind;
@@ -84,6 +91,7 @@ type RuntimeStatusPayload = {
     botTokenSource: "env" | "stored" | "none";
     webhookSecretSource: "env" | "stored" | "none";
   };
+  security: AccessSecuritySettings;
 };
 
 type DiagnosticsSnapshot = {
@@ -206,13 +214,14 @@ function parseCommaSeparated(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function shouldEnforceAccessEmail(env: Env): boolean {
-  const value = (env as unknown as { ACCESS_EMAIL_ENFORCE?: string })
-    .ACCESS_EMAIL_ENFORCE;
+function normalizeBooleanString(value: string | undefined): boolean | null {
+  if (!value) return null;
 
-  if (!value) return true;
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "off"].includes(normalized)) return false;
 
-  return value.trim().toLowerCase() !== "false";
+  return null;
 }
 
 function getAllowedAccessEmails(env: Env): string[] {
@@ -227,44 +236,18 @@ function getAllowedAccessDomains(env: Env): string[] {
   return parseCommaSeparated(raw);
 }
 
-function verifyAccessEmail(request: Request, env: Env): AccessAuthResult {
-  if (!shouldEnforceAccessEmail(env)) {
-    return { ok: true, email: "access-check-disabled" };
-  }
+async function verifyAccessEmail(
+  request: Request,
+  env: Env
+): Promise<AccessAuthResult> {
+  const defaultAgent = await getAgentByName<Env, ChatAgent>(
+    env.ChatAgent,
+    "default"
+  );
 
-  const email = request.headers
-    .get("CF-Access-Authenticated-User-Email")
-    ?.trim()
-    .toLowerCase();
-
-  if (!email) {
-    return {
-      ok: false,
-      reason:
-        "Missing Cloudflare Access identity header. Protect this route with Cloudflare Access email login."
-    };
-  }
-
-  const allowedEmails = getAllowedAccessEmails(env);
-  if (allowedEmails.length > 0 && !allowedEmails.includes(email)) {
-    return {
-      ok: false,
-      reason: `Email ${email} is not in ACCESS_ALLOWED_EMAILS allowlist.`
-    };
-  }
-
-  const allowedDomains = getAllowedAccessDomains(env);
-  if (allowedDomains.length > 0) {
-    const domain = email.split("@")[1] || "";
-    if (!domain || !allowedDomains.includes(domain)) {
-      return {
-        ok: false,
-        reason: `Email domain ${domain || "unknown"} is not in ACCESS_ALLOWED_EMAIL_DOMAINS.`
-      };
-    }
-  }
-
-  return { ok: true, email };
+  return await defaultAgent.verifyRequestAccessEmail(
+    request.headers.get("CF-Access-Authenticated-User-Email")
+  );
 }
 
 function getTelegramWebhookSecret(env: Env): string | undefined {
@@ -421,6 +404,7 @@ export class ChatAgent extends Think<Env> {
   private static readonly CHAT_HEALTH_KEY = "chat_health_state";
   private static readonly TELEGRAM_CREDENTIALS_KEY =
     "telegram_credentials_state";
+  private static readonly ACCESS_SECURITY_KEY = "access_security_state";
 
   private getLoaderBinding(): WorkerLoader | undefined {
     return (this.env as unknown as { LOADER?: WorkerLoader }).LOADER;
@@ -450,6 +434,62 @@ export class ChatAgent extends Think<Env> {
         model: DEFAULT_OPENAI_COMPAT_MODEL,
         apiKeyMode: "secret"
       }
+    };
+  }
+
+  private getStoredAccessSecurityValue(): boolean | null {
+    const raw = this.getConfig() as Record<string, unknown> | null;
+    const candidate = raw?.[ChatAgent.ACCESS_SECURITY_KEY];
+
+    return typeof candidate === "boolean" ? candidate : null;
+  }
+
+  private setStoredAccessSecurityValue(value: boolean): void {
+    this.configure({
+      ...(this.getConfig() || {}),
+      [ChatAgent.ACCESS_SECURITY_KEY]: value
+    });
+  }
+
+  private resolveAccessSecuritySettings(): AccessSecuritySettings {
+    const configuredEnvValue = (
+      this.env as unknown as { ACCESS_EMAIL_ENFORCE?: string }
+    ).ACCESS_EMAIL_ENFORCE;
+    const envValue = normalizeBooleanString(configuredEnvValue);
+
+    if (envValue === false) {
+      return {
+        accessEmailEnforce: false,
+        source: "env",
+        storedValue: this.getStoredAccessSecurityValue(),
+        configuredEnvValue: configuredEnvValue || null
+      };
+    }
+
+    const storedValue = this.getStoredAccessSecurityValue();
+    if (storedValue !== null) {
+      return {
+        accessEmailEnforce: storedValue,
+        source: "stored",
+        storedValue,
+        configuredEnvValue: configuredEnvValue || null
+      };
+    }
+
+    if (envValue !== null) {
+      return {
+        accessEmailEnforce: envValue,
+        source: "env",
+        storedValue: null,
+        configuredEnvValue: configuredEnvValue || null
+      };
+    }
+
+    return {
+      accessEmailEnforce: true,
+      source: "implicit-default",
+      storedValue: null,
+      configuredEnvValue: configuredEnvValue || null
     };
   }
 
@@ -601,6 +641,7 @@ export class ChatAgent extends Think<Env> {
     const nextReset = getNextUtcMidnight();
     const limitState = this.getWorkersAiLimitState();
     const chatHealth = this.getChatHealthState();
+    const security = this.resolveAccessSecuritySettings();
 
     return {
       provider: {
@@ -627,8 +668,69 @@ export class ChatAgent extends Think<Env> {
       },
       telegram: {
         ...this.resolveTelegramCredentials().status
-      }
+      },
+      security
     };
+  }
+
+  @callable()
+  async getAccessSecuritySettings(): Promise<AccessSecuritySettings> {
+    return this.resolveAccessSecuritySettings();
+  }
+
+  @callable()
+  async updateAccessSecuritySettings(accessEmailEnforce: boolean) {
+    this.setStoredAccessSecurityValue(accessEmailEnforce);
+    return this.buildRuntimeStatus(false);
+  }
+
+  @callable()
+  async clearStoredAccessSecuritySettings() {
+    const config = { ...(this.getConfig() || {}) } as Record<string, unknown>;
+    delete config[ChatAgent.ACCESS_SECURITY_KEY];
+    this.configure(config);
+    return this.buildRuntimeStatus(false);
+  }
+
+  @callable()
+  async verifyRequestAccessEmail(requestEmail: string | null) {
+    const security = this.resolveAccessSecuritySettings();
+    if (!security.accessEmailEnforce) {
+      return {
+        ok: true,
+        email: "access-check-disabled"
+      } satisfies AccessAuthResult;
+    }
+
+    const email = requestEmail?.trim().toLowerCase() || null;
+    if (!email) {
+      return {
+        ok: false,
+        reason:
+          "Missing Cloudflare Access identity header. Protect this route with Cloudflare Access email login."
+      } satisfies AccessAuthResult;
+    }
+
+    const allowedEmails = getAllowedAccessEmails(this.env);
+    if (allowedEmails.length > 0 && !allowedEmails.includes(email)) {
+      return {
+        ok: false,
+        reason: `Email ${email} is not in ACCESS_ALLOWED_EMAILS allowlist.`
+      } satisfies AccessAuthResult;
+    }
+
+    const allowedDomains = getAllowedAccessDomains(this.env);
+    if (allowedDomains.length > 0) {
+      const domain = email.split("@")[1] || "";
+      if (!domain || !allowedDomains.includes(domain)) {
+        return {
+          ok: false,
+          reason: `Email domain ${domain || "unknown"} is not in ACCESS_ALLOWED_EMAIL_DOMAINS.`
+        } satisfies AccessAuthResult;
+      }
+    }
+
+    return { ok: true, email } satisfies AccessAuthResult;
   }
 
   private isWorkersAiDailyLimitError(error: unknown): boolean {
@@ -1299,7 +1401,7 @@ export default {
       return handleTelegramWebhook(request, env, ctx);
     }
 
-    const accessResult = verifyAccessEmail(request, env);
+    const accessResult = await verifyAccessEmail(request, env);
     if (!accessResult.ok) {
       return new Response(`Unauthorized: ${accessResult.reason}`, {
         status: 401,
