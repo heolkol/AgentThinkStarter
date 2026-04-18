@@ -26,24 +26,5 @@
       "new_sqlite_classes": ["ChatAgent"],
       "tag": "v1"
     }
-  ],
-  "env": {
-    "full": {
-      "name": "project-think-agent-full",
-      "vars": {
-        "ACCESS_EMAIL_ENFORCE": "false"
-      },
-      "ai": { "binding": "AI", "remote": true },
-      "browser": { "binding": "BROWSER" },
-      "worker_loaders": [{ "binding": "LOADER" }],
-      "durable_objects": {
-        "bindings": [
-          {
-            "class_name": "ChatAgent",
-            "name": "ChatAgent"
-          }
-        ]
-      }
-    }
-  }
+  ]
 }

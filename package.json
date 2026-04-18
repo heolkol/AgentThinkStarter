@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "vite dev",
     "start": "vite dev",
-    "deploy": "vite build && wrangler deploy -e \"\"",
+    "deploy": "vite build && wrangler deploy",
     "types": "wrangler types env.d.ts --include-runtime false",
     "format": "oxfmt --write .",
     "lint": "oxlint src/",
